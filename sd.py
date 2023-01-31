@@ -13,9 +13,7 @@ from PIL.PngImagePlugin import PngInfo
 import torch
 
 
-MODEL_VERSION_2_1 = '2.1'
-MODEL_VERSIONS = [MODEL_VERSION_2_1]
-MODELS = {MODEL_VERSION_2_1: 'stabilityai/stable-diffusion-2-1'}
+STABLE_DIFFUSION_2_1 = 'stabilityai/stable-diffusion-2-1'
 
 SCHEDULER_ID_DPMS = 'dpms'
 SCHEDULER_ID_E = 'e'
@@ -39,10 +37,9 @@ def generate_images(args: argparse.Namespace):
         seeds = [seeds[0] + i for i in range(args.num_images)]
 
     # Load model
-    model = MODELS[args.version]
     scheduler_class = SCHEDULERS[args.scheduler]
-    scheduler = scheduler_class.from_pretrained(model, subfolder='scheduler')
-    pipe = StableDiffusionPipeline.from_pretrained(model, scheduler=scheduler)
+    scheduler = scheduler_class.from_pretrained(args.model, subfolder='scheduler')
+    pipe = StableDiffusionPipeline.from_pretrained(args.model, scheduler=scheduler)
     pipe = pipe.to(args.device)
     pipe.enable_attention_slicing()
 
@@ -58,7 +55,7 @@ def generate_images(args: argparse.Namespace):
 
         # Populate generation information
         pnginfo = PngInfo()
-        pnginfo.add_text('sd:model', model)
+        pnginfo.add_text('sd:model', args.model)
         pnginfo.add_text('sd:prompt', args.prompt)
         if args.negative_prompt:
             pnginfo.add_text('sd:negative_prompt', args.negative_prompt)
@@ -68,10 +65,10 @@ def generate_images(args: argparse.Namespace):
         pnginfo.add_text('sd:num_inference_steps', str(num_inference_steps))
 
         # Save image
-        both_prompts = args.prompt + (args.negative_prompt if args.negative_prompt is not None else '')
-        prompts_sha1_short = hashlib.sha1(both_prompts.encode()).hexdigest()[:7]
-        fname = f'{args.output_prefix}-{args.version}-{prompts_sha1_short}-{seed}-{guidance_scale}-{args.scheduler}-' \
-                f'{num_inference_steps}.png'
+        model_prompt_negative_prompt = (args.model + args.prompt
+                                        + (args.negative_prompt if args.negative_prompt is not None else ''))
+        sha1_short = hashlib.sha1(model_prompt_negative_prompt.encode()).hexdigest()[:7]
+        fname = f'{args.output_prefix}-{sha1_short}-{seed}-{guidance_scale}-{args.scheduler}-{num_inference_steps}.png'
         image.save(fname, pnginfo=pnginfo)
 
 
@@ -117,11 +114,11 @@ def main():
                         type=float,
                         default=[7.5],
                         help='Guidance scale. Can specify multiple values to iterate over. Default %(default)s.')
-    parser.add_argument('--version',
-                        '-v',
-                        choices=MODEL_VERSIONS,
-                        default=MODEL_VERSION_2_1,
-                        help='Model version. Default %(default)s.')
+    parser.add_argument('--model',
+                        '-m',
+                        type=str,
+                        default=STABLE_DIFFUSION_2_1,
+                        help='Model. Default %(default)s.')
     parser.add_argument('--scheduler',
                         '-sc',
                         choices=SCHEDULER_IDS,
