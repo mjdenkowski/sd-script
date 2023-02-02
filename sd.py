@@ -13,7 +13,7 @@ from PIL.PngImagePlugin import PngInfo
 import torch
 
 
-STABLE_DIFFUSION_2_1 = 'stabilityai/stable-diffusion-2-1'
+MODEL_STABLE_DIFFUSION_2_1 = 'stabilityai/stable-diffusion-2-1'
 
 SCHEDULER_ID_DPMS = 'dpms'
 SCHEDULER_ID_E = 'e'
@@ -75,24 +75,52 @@ def generate_images(args: argparse.Namespace):
 def main():
 
     parser = argparse.ArgumentParser(description='Run Stable Diffusion')
+    parser.add_argument('--output-prefix', '-o',
+                        type=str,
+                        required=True,
+                        help='Images are written to `output_prefix`-[...].png')
     parser.add_argument('--prompt', '-p',
                         type=str,
                         required=True,
                         help='Prompt')
-    parser.add_argument('--output-prefix', '-o',
+    parser.add_argument('--device',
+                        '-d',
+                        choices=DEVICES,
+                        default=DEVICE_CPU,
+                        help='Inference device. Default: %(default)s.')
+    parser.add_argument('--guidance-scale',
+                        '-g',
+                        nargs='+',
+                        type=float,
+                        default=[7.5],
+                        help='Guidance scale. Can specify multiple values to iterate over. Default: %(default)s.')
+    parser.add_argument('--model',
+                        '-m',
                         type=str,
-                        required=True,
-                        help='Images are written to `output_prefix`.`seed`.png')
-    parser.add_argument('--num-images',
-                        '-n',
-                        type=int,
-                        default=1,
-                        help='Number of images to generate. Default %(default)s.')
+                        default=MODEL_STABLE_DIFFUSION_2_1,
+                        help='Model. Default: %(default)s.')
     parser.add_argument('--negative-prompt',
                         '-np',
                         type=str,
                         default=None,
-                        help='Negative prompt. Default %(default)s.')
+                        help='Negative prompt. Default: %(default)s.')
+    parser.add_argument('--num-images',
+                        '-n',
+                        type=int,
+                        default=1,
+                        help='Number of images to generate. Default: %(default)s.')
+    parser.add_argument('--num-inference-steps',
+                        '-ns',
+                        nargs='+',
+                        type=int,
+                        default=[15],
+                        help='Number of inference steps. Can specify multiple values to iterate over. '
+                             'Default: %(default)s.')
+    parser.add_argument('--scheduler',
+                        '-sc',
+                        choices=SCHEDULER_IDS,
+                        default=SCHEDULER_ID_DPMS,
+                        help='Scheduler. Default: %(default)s.')
     parser.add_argument('--seed',
                         '-s',
                         nargs='+',
@@ -100,35 +128,7 @@ def main():
                         default=None,
                         help='If a single value, the starting seed for generating `num_images` images that use '
                              '`seed + 1`, `seed + 2`, etc. If multiple values, the seeds to use (`num_images` '
-                             'ignored). Defaults to current time in seconds.')
-    parser.add_argument('--num-inference-steps',
-                        '-ni',
-                        nargs='+',
-                        type=int,
-                        default=[15],
-                        help='Number of inference steps. Can specify multiple values to iterate over. '
-                             'Default %(default)s.')
-    parser.add_argument('--guidance-scale',
-                        '-gs',
-                        nargs='+',
-                        type=float,
-                        default=[7.5],
-                        help='Guidance scale. Can specify multiple values to iterate over. Default %(default)s.')
-    parser.add_argument('--model',
-                        '-m',
-                        type=str,
-                        default=STABLE_DIFFUSION_2_1,
-                        help='Model. Default %(default)s.')
-    parser.add_argument('--scheduler',
-                        '-sc',
-                        choices=SCHEDULER_IDS,
-                        default=SCHEDULER_ID_DPMS,
-                        help='Model version. Default %(default)s.')
-    parser.add_argument('--device',
-                        '-d',
-                        choices=DEVICES,
-                        default=DEVICE_CPU,
-                        help='Inference device. Default %(default)s.')
+                             'ignored). Defaults to the current time in seconds.')
 
     args = parser.parse_args()
     generate_images(args)
