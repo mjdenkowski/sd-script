@@ -113,7 +113,7 @@ def main():
                         '-ns',
                         nargs='+',
                         type=int,
-                        default=[15],
+                        default=[20],
                         help='Number of inference steps. Can specify multiple values to iterate over. '
                              'Default: %(default)s.')
     parser.add_argument('--scheduler',
